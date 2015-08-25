@@ -71,6 +71,8 @@ class Widget_ESI_Login extends WP_Widget
 		 * This is where you write your custom code.
 		 */
 		?>
+				<esi:include src="/wp-content/plugins/wordcamper-news-plugin/esi/auth.php" />
+
         <?php global $user_login;
         if(isset($_GET['login']) && $_GET['login'] == 'failed')
         {

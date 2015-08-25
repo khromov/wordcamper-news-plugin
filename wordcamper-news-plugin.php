@@ -100,3 +100,10 @@ add_action('wp_login', function($user_login, $user) {
 add_action('wp_logout', function() {
 	setcookie( 'wp_user_is_subscriber', '1', time() - 3600, null, wcn_is_https_request() );
 });
+
+/**
+ * Add endpoints for grabbing our data
+ */
+add_action('wp_logout', function() {
+	setcookie( 'wp_user_is_subscriber', '1', time() - 3600, null, wcn_is_https_request() );
+});
