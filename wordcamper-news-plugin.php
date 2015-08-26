@@ -10,6 +10,24 @@
 */
 
 include 'widgets/ESILogin.php';
+include 'classes/APIEndpoints.php';
+
+//Create endpoints
+$wc_api_endpoint = new WordCamper_API_Endpoints();
+
+function wordcamper_generate_user_hash($username) {
+	return md5($username . 'super-secret-hash');
+}
+
+function wordcamper_set_subscriber_cookie($username) {
+	$user_secret_key = wordcamper_generate_user_hash($username); //TODO: in config!
+	setcookie( 'wp_subscriber', "1|{$username}|{$user_secret_key}", time() + YEAR_IN_SECONDS, SITECOOKIEPATH, null, wcn_is_https_request());
+}
+
+function wordcamper_delete_subscriber_cookie($username) {
+	$user_secret_key = wordcamper_generate_user_hash($username); //TODO: in config!
+	setcookie( 'wp_subscriber', "1|{$username}|{$user_secret_key}", time() - 3600, SITECOOKIEPATH, null, wcn_is_https_request());
+}
 
 /**
  * Set appropriate cookies
@@ -21,30 +39,15 @@ add_action('init', function() {
 
 		$user = wp_get_current_user();
 
-		$subscriber = false;
-
 		//Check all roles
-		foreach($user->roles as $role) {
+		foreach ($user->roles as $role) {
 
-			//Is user subscriber?
-			if($role === 'subscriber') {
-				$subscriber = true;
-				//TODO: Look over security implications of this (is httponly flag enough?)
+			if ($role === 'subscriber') {
+				wordcamper_set_subscriber_cookie($user->user_login);
+				break;
 			}
 		}
-
-		if(!$subscriber) {
-			//We looped all roles, user is not subscriber = we can set the non-subscriber cookie
-			setcookie( 'wp_not_subscriber', '1', time() + YEAR_IN_SECONDS, SITECOOKIEPATH, null, wcn_is_https_request());
-		}
-
-		//Sanity check if user logged in
-		//if(is_a($user, 'WP_User') && $user->ID !== 0) {
-		//	var_dump($user->ID);
-		//}
-		//setcookie( 'wp_not_subscriber', '1', time() + YEAR_IN_SECONDS, SITECOOKIEPATH, null, wcn_is_https_request() );
 	}
-
 });
 
 /**
@@ -71,23 +74,17 @@ function wcn_is_https_request() {
  */
 add_action('wp_login', function($user_login, $user) {
 
-	//Valid user login
-	if(is_a($user, 'WP_User')) {
+	if(is_user_logged_in()) {
 
-		$subscriber = false;
+		$user = wp_get_current_user();
 
-		//Check all roles TODO: Remove duplicate dcode
-		foreach($user->roles as $role) {
+		//Check all roles
+		foreach ($user->roles as $role) {
 
-			//Is user subscriber?
-			if($role === 'subscriber') {
-				$subscriber = true;
+			if ($role === 'subscriber') {
+				wordcamper_set_subscriber_cookie($user->user_login);
+				break;
 			}
-		}
-
-		if(!$subscriber) {
-			//We looped all roles, user is not subscriber = we can set the non-subscriber cookie
-			setcookie( 'wp_not_subscriber', '1', time() + YEAR_IN_SECONDS, SITECOOKIEPATH, null, wcn_is_https_request());
 		}
 	}
 
@@ -98,12 +95,19 @@ add_action('wp_login', function($user_login, $user) {
  * Expire the wp_user_is_subscriber cookie on logout
  */
 add_action('wp_logout', function() {
-	setcookie( 'wp_user_is_subscriber', '1', time() - 3600, null, wcn_is_https_request() );
+	delete_all_cookies();
+	//setcookie( 'wp_user_is_subscriber', '1', time() - 3600, null, wcn_is_https_request() );
 });
 
-/**
- * Add endpoints for grabbing our data
- */
-add_action('wp_logout', function() {
-	setcookie( 'wp_user_is_subscriber', '1', time() - 3600, null, wcn_is_https_request() );
-});
+/** http://stackoverflow.com/questions/2310558/how-to-delete-all-cookies-of-my-website-in-php **/
+function delete_all_cookies() {
+	if (isset($_SERVER['HTTP_COOKIE'])) {
+		$cookies = explode(';', $_SERVER['HTTP_COOKIE']);
+		foreach($cookies as $cookie) {
+			$parts = explode('=', $cookie);
+			$name = trim($parts[0]);
+			setcookie($name, '', time()-1000);
+			setcookie($name, '', time()-1000, '/');
+		}
+	}
+}

@@ -1,10 +1,4 @@
 <?php
-error_reporting(-1);
-ini_set('display_errors', 'On');
-
-/* TODO: Read cookie value from header */
-//..FIXME: May be urlencoded with %7 between pipes
-$cookie_content = 'wordpress|1440711208|DbHArvjAoQ0YNc8VIP3wKurLfiu5btdQWvXSGNPcAIH|4366e163595de737985a8a1b6ed3b0941fa46de011f7326ac50d880ad35f4ec5';
 
 /* Define our special variable */
 define( 'LOAD_CONFIG_ONLY', true );
@@ -38,7 +32,6 @@ $cookie_content_parsed = wp_parse_frontend_cookie($cookie_content);
 var_dump($cookie_content_parsed);
 
 var_dump(wp_validate_auth_cookie($cookie_content));
-die();
 
 /**
  * borrowed
